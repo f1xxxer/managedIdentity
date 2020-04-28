@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ident-deployment
+  labels:
+    app: ident
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: ident
+      labels:
+        app: ident
+    spec:
+      containers:
+      - name: ident
+        image: crgmanaged.azurecr.io/ident:7
+        env:
+          - name: ConnectionStrings__AppConfig
+            value: "https://managedidentitydemoconfig.azconfig.io"
+          - name: ManagedIdentityClientId
+            value: a72c3863-bde8-49c7-8e10-f82054635251
+        imagePullPolicy: IfNotPresent       
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: ident
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ident-service
+spec:
+  selector:
+    app: ident
+  ports:
+    - port: 5000
+  type: LoadBalancer

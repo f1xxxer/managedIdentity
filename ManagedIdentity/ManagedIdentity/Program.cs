@@ -1,12 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Azure.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace ManagedIdentity
 {
@@ -22,13 +19,21 @@ namespace ManagedIdentity
                 .ConfigureWebHostDefaults(webBuilder =>
                     webBuilder
                     .ConfigureAppConfiguration((hostingContext, config) =>
+                    {
+                        var settings = config.Build();
+                        
+                        var credentials = new ManagedIdentityCredential(settings["ManagedIdentityClientId"]);                        
+
+                        config.AddAzureAppConfiguration(options =>
                         {
-                            var settings = config.Build();
-                            config.AddAzureAppConfiguration(o =>
-                            {
-                                o.Connect(settings["ConnectionStrings:AppConfig"]);                               
-                            });
-                        })
+                            options.Connect(new Uri(settings["ConnectionStrings:AppConfig"]), credentials)
+                                    .Select(KeyFilter.Any, "ManagedDemoServiceApi")
+                                    .ConfigureKeyVault(kv =>
+                                    {
+                                        kv.SetCredential(credentials);
+                                    });
+                        });
+                    })
                         .UseStartup<Startup>());
     }
 }
